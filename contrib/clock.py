@@ -1,4 +1,37 @@
-from europi import *
+"""
+Clock
+
+Author: Adam Wonak
+Date: 2022/01/12
+
+This script can be used as a standalone master clock or it can be imported by
+other scripts and used as a master clock for other scripts.
+
+When no cable is plugged into the digital input, this script will provide a 4
+PPQN clock triggerd by cv output 1. The clock will pulse every 16th note. The
+internal clock will provide a reliable and (mostly*) steady clock within a range
+of 20 to ~300 BPM. The range should not be too broad because the larger the
+range, the more difficult it becomes to dial in a specific tempo with a single
+knob on the module.
+
+When a cable is plugged into the digital input and a clock pulse is detected,
+the Clock will switch to external clock mode and calculate the tempo based on
+the period between pulses, expecting to receive 4 PPQN. If a pulse has not
+been detected for a period greater than 3000 ms (20 BPM), then the Clock will
+automatically switch back to internal clock source.
+
+Other scripts can import the Clock to use as a clock source for their own
+scripts. The clock can be initialized with either knob to control internal
+clock speed, and optional cv output to emit the clock trigger. Additionally,
+the Clock has a display method that shows the clock source, tempo and period.
+
+*Note that clocks at higher tempos will start to loose accuracy caused by
+Python's periodic garbage collection running and causing timing delays. The
+Clock is mostly accurate within a range of 20 to 300 BPM for both internal and
+external clock sources.
+
+"""
+from europi import cv1, din, k1, oled
 from time import ticks_diff, ticks_add, ticks_ms, sleep_ms
 import machine
 
@@ -20,16 +53,9 @@ class Clock:
     _prev_clock = 0
     _last_time = 0
 
-    def __init__(self, knob):
+    def __init__(self, knob=k1, output=cv1):
         self.knob = knob
-
-    @property
-    def tempo(self):
-        """Read the current tempo set by given knob within set range."""
-        if self.internal_clock:
-            return round(self.knob.read_position(MAX_BPM - MIN_BPM, SAMPLES) + MIN_BPM)
-        else:
-            return int((60 * 1000) / self._period)
+        self.output = output
 
     def _get_next_deadline(self):
         self._period = int((60 / self.tempo) * 1000)
@@ -51,7 +77,8 @@ class Clock:
     def _external_wait(self):
         while True:
             # Override external clock if no pulse for 3 seconds.
-            self._period = ticks_diff(ticks_ms(), self._last_time) * 4  # 4 PPQN
+            self._period = ticks_diff(
+                ticks_ms(), self._last_time) * 4  # 4 PPQN
             if self._period > 3000:
                 self.internal_clock = True
                 return
@@ -62,30 +89,45 @@ class Clock:
                     self._last_time = ticks_ms()
                     return
 
+    @property
+    def tempo(self):
+        """Read the current tempo set by given knob within set range."""
+        if self.internal_clock:
+            return round(self.knob.read_position(MAX_BPM - MIN_BPM, SAMPLES) + MIN_BPM)
+        else:
+            return int((60 * 1000) / self._period)
+
+    @property
+    def period(self):
+        """The amount of time in ms between each quarter note clock pulse."""
+        return self._period
+
     def wait(self):
         """Wait for a clock cycle of the current selected clock source."""
         if self.internal_clock:
             self._internal_wait()
         else:
             self._external_wait()
-    
+
     def display(self):
         """Display clock source, tempo and period."""
         source = "internal" if self.internal_clock else "external"
-        oled.centre_text(f"source: {source}\ntempo: {self.tempo:>3} BPM\nperiod: {self._period:>4} ms")
+        oled.centre_text(
+            f"source: {source}\ntempo: {self.tempo:>3} BPM\nperiod: {self.period:>4} ms")
 
     def main(self):
         while True:
             # Display clock state
             self.display()
             # Clock trigger
-            cv1.on()
-            sleep_ms(5)
-            cv1.off()
+            if self.output is not None:
+                self.output.on()
+                sleep_ms(5)
+                self.output.off()
             # Wait for next clock cycle
             self.wait()
 
 
 if __name__ == '__main__':
-    c = Clock(k1)
+    c = Clock()
     c.main()
