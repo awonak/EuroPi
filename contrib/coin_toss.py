@@ -1,12 +1,9 @@
 from europi import *
+from clock import Clock
 from random import random
-from time import sleep_ms, ticks_ms, ticks_add, ticks_diff
+from time import sleep_ms
 import machine
 
-
-# Internal clock tempo range.
-MAX_BPM = 280
-MIN_BPM = 20
 
 # Constant values for display.
 FRAME_WIDTH = int(OLED_WIDTH / 8)
@@ -20,51 +17,24 @@ machine.freq(250000000)
 
 
 class CoinToss:
-    def __init__(self):
+    DISPLAY_MODES = ['COIN1', 'COIN2', 'CLOCK']
+
+    def __init__(self, clock=Clock(k1)):
+        self.clock = clock
         self.gate_mode = True
-        self.internal_clock = True
-        self._prev_clock = 0
-        self._tempo = 0
-        self._deadline = 0
+        self.display_mode = 0
 
         @b1.handler
-        def toggle_clock():
-            """Toggle between internal clock and external clock from digital in."""
-            self.internal_clock = not self.internal_clock
+        def toggle_display():
+            self.display_mode = (self.display_mode + 1) % len(self.DISPLAY_MODES)
+            oled.clear()
+            oled.show()
 
         @b2.handler
         def toggle_gate():
             """Toggle between gate and trigger mode."""
             self.gate_mode = not self.gate_mode
             [o.off() for o in cvs]
-
-    def tempo(self):
-        """Read the current tempo set by k1 within set range."""
-        return round(k1.read_position(MAX_BPM - MIN_BPM, SAMPLES) + MIN_BPM)
-
-    def get_next_deadline(self):
-        """Get the deadline for next clock tick whole note."""
-        # The duration of a quarter note in ms for the current tempo.
-        wait_ms = int(((60 / self.tempo()) / 4) * 1000)
-        return ticks_add(ticks_ms(), wait_ms)
-
-    def wait(self):
-        """Pause script execution waiting for next quarter note in the clock cycle."""
-        if self.internal_clock:
-            while True:
-                if ticks_diff(self._deadline, ticks_ms()) <= 0:
-                    self._deadline = self.get_next_deadline()
-                    return
-        else:  # External clock
-            # Loop until digital in goes high (clock pulse received).
-            while not self.internal_clock:
-                if din.value() != self._prev_clock:
-                    # We've detected a new clock value.
-                    self._prev_clock = 1 if self._prev_clock == 0 else 0
-                    # If the previous value is 0 then we are seeing a high 
-                    # value for the first time, break wait and return.
-                    if self._prev_clock == 0:
-                        return
 
     def toss(self, a, b, draw=True):
         """If random value is below trigger a, otherwise trigger b.
@@ -93,19 +63,16 @@ class CoinToss:
         else:
             oled.fill_rect(offset, h, tick, OLED_HEIGHT, 1)
 
-
     def main(self):
         # Start the main loop.
         counter = 0
         while True:
-            # Scroll and clear new screen area.
-            oled.scroll(FRAME_WIDTH, 0)
-            oled.fill_rect(0, 0, FRAME_WIDTH, OLED_HEIGHT, 0)
-
-            self.toss(cv1, cv2)
+            # Random coin toss for each coin pair.
+            self.toss(cv1, cv2, self.display_mode == 0)
             cv3.on()  # First column clock trigger
+
             if counter % 4 == 0:
-                self.toss(cv4, cv5, False)
+                self.toss(cv4, cv5, self.display_mode == 1)
                 cv6.on()  # Second column clock trigger (1/4x speed)
             
             sleep_ms(10)
@@ -116,12 +83,19 @@ class CoinToss:
                 # Turn of all cvs in trigger mode.
                 [o.off() for o in cvs]
 
-            # Draw threshold line
-            oled.hline(0, int(self.threshold * OLED_HEIGHT), FRAME_WIDTH, 1)
-            oled.show()
+            # Display state
+            if self.display_mode == 2:
+                self.clock.display()
+            else:
+                # Draw threshold line
+                oled.hline(0, int(self.threshold * OLED_HEIGHT), FRAME_WIDTH, 1)
+                oled.show()
+                # Scroll and clear new screen area.
+                oled.scroll(FRAME_WIDTH, 0)
+                oled.fill_rect(0, 0, FRAME_WIDTH, OLED_HEIGHT, 0)
 
             counter += 1
-            self.wait()
+            self.clock.wait()
 
 
 if __name__ == '__main__':
