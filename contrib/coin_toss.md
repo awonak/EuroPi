@@ -18,12 +18,16 @@ external threshold control.
     analogue in: Threshold control (summed with threshold knob)
     knob 1: internal clock speed
     knob 2: probability threshold
-    button 1: toggle internal / external clock source
+    button 1: toggle display mode: Coin1 / Coin2 / Clock
     button 2: toggle gate/trigger mode
     cv1/cv2: Coin 1 gate output pair when voltage above/below threshold
     cv4/cv5: Coin 2 gate output pair at 1/4x speed
     cv3: Coin 1 clock
     cv6: Coin 2 clock
+
+Additional dependencies:
+
+* [clock.py](clock.py)
 
 For developing, I like to use Visual Studio Code as my IDE and `rshell` to copy
 and run my scripts.
@@ -31,5 +35,6 @@ and run my scripts.
 From the root dir of the repo, enter rshell:
 
     $ rshell
+    > cp contrib/clock.py /pyboard/clock.py
     > cp contrib/coin_toss.py /pyboard/main.py
-    > repl pyboard ~ from  main import * ~ c=CoinToss() ~ c.main()
+    > repl pyboard ~ from main import * ~ c=CoinToss() ~ c.main()
