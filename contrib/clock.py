@@ -5,14 +5,14 @@ Author: Adam Wonak
 Date: 2022/01/12
 
 This script can be used as a standalone master clock or it can be imported by
-other scripts and used as a master clock for other scripts.
+other scripts and used as a master clock for that scripts.
 
 When no cable is plugged into the digital input, this script will provide a 4
-PPQN clock triggerd by cv output 1. The clock will pulse every 16th note. The
-internal clock will provide a reliable and (mostly*) steady clock within a range
-of 20 to ~300 BPM. The range should not be too broad because the larger the
-range, the more difficult it becomes to dial in a specific tempo with a single
-knob on the module.
+PPQN (pulse per quarternote) clock trigger on the given cv output. The Clock
+will trigger every 16th note. The internal clock will provide a reliable and
+(mostly*) steady clock within a range of 20 to ~300 BPM. The range should not
+be too broad because when a larger the range is used, it becomes more difficult
+to dial in a specific tempo with a single knob on the module.
 
 When a cable is plugged into the digital input and a clock pulse is detected,
 the Clock will switch to external clock mode and calculate the tempo based on
@@ -20,10 +20,28 @@ the period between pulses, expecting to receive 4 PPQN. If a pulse has not
 been detected for a period greater than 3000 ms (20 BPM), then the Clock will
 automatically switch back to internal clock source.
 
-Other scripts can import the Clock to use as a clock source for their own
-scripts. The clock can be initialized with either knob to control internal
-clock speed, and optional cv output to emit the clock trigger. Additionally,
-the Clock has a display method that shows the clock source, tempo and period.
+Other scripts can import the Clock to use as their own clock source. The Clock
+can be initialized with either knob to control internal clock speed, and
+optional cv output to emit the clock trigger. Additionally, the Clock has a
+display method that shows the clock source, tempo and period. Scripts can use
+the `wait()` method to block between clock cycles.
+
+Sample script usage:
+
+    from europi import *
+    from time import sleep_ms
+    from clock import Clock
+
+    clock = Clock()
+
+    while True:
+        for output in cvs:
+            # Trigger current output
+            output.on()
+            sleep_ms(10)
+            output.off()
+            # Block and wait for next clock cycle
+            clock.wait()
 
 *Note that clocks at higher tempos will start to loose accuracy caused by
 Python's periodic garbage collection running and causing timing delays. The
@@ -77,8 +95,7 @@ class Clock:
     def _external_wait(self):
         while True:
             # Override external clock if no pulse for 3 seconds.
-            self._period = ticks_diff(
-                ticks_ms(), self._last_time) * 4  # 4 PPQN
+            self._period = ticks_diff(ticks_ms(), self._last_time) * 4  # 4 PPQN
             if self._period > 3000:
                 self.internal_clock = True
                 return
