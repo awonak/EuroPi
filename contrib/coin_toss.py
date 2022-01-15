@@ -2,8 +2,6 @@ from europi import *
 from clock import Clock
 from random import random
 from time import sleep_ms
-import machine
-
 
 # Constant values for display.
 FRAME_WIDTH = int(OLED_WIDTH / 8)
@@ -11,22 +9,28 @@ FRAME_WIDTH = int(OLED_WIDTH / 8)
 # Number of sequential reads for smoothing analog read values.
 SAMPLES = 32
 
-# Overclock the Pico for improved performance.
-machine.freq(250000000)
-# machine.freq(125000000)  # Default clock speed.
+# Dim the display a bit to make it easier on the eyes.
+oled.contrast(0)
+
+# Display mode enums.
+DISPLAY_COIN1 = 'coin1'
+DISPLAY_COIN2 = 'coin2'
+DISPLAY_TEMPO = 'tempo'
+DISPLAY_MODES = [DISPLAY_COIN1, DISPLAY_COIN2, DISPLAY_TEMPO]
 
 
 class CoinToss:
-    DISPLAY_MODES = ['COIN1', 'COIN2', 'CLOCK']
 
     def __init__(self, clock=Clock(k1)):
         self.clock = clock
         self.gate_mode = True
-        self.display_mode = 0
+        self.display_mode = DISPLAY_COIN1
 
         @b1.handler
         def toggle_display():
-            self.display_mode = (self.display_mode + 1) % len(self.DISPLAY_MODES)
+            i = DISPLAY_MODES.index(self.display_mode)
+            index = (i + 1) % len(DISPLAY_MODES)
+            self.display_mode = DISPLAY_MODES[index]
             oled.clear()
             oled.show()
 
@@ -50,7 +54,7 @@ class CoinToss:
             b.value(coin > self.threshold)
         else:
             (a if coin < self.threshold else b).on()
-        
+
         if not draw:
             return
 
@@ -68,13 +72,13 @@ class CoinToss:
         counter = 0
         while True:
             # Random coin toss for each coin pair.
-            self.toss(cv1, cv2, self.display_mode == 0)
+            self.toss(cv1, cv2, self.display_mode == DISPLAY_COIN1)
             cv3.on()  # First column clock trigger
 
             if counter % 4 == 0:
-                self.toss(cv4, cv5, self.display_mode == 1)
+                self.toss(cv4, cv5, self.display_mode == DISPLAY_COIN2)
                 cv6.on()  # Second column clock trigger (1/4x speed)
-            
+
             sleep_ms(10)
             if self.gate_mode:
                 # Only turn off clock triggers.
@@ -84,7 +88,7 @@ class CoinToss:
                 [o.off() for o in cvs]
 
             # Display state
-            if self.display_mode == 2:
+            if self.display_mode == DISPLAY_TEMPO:
                 self.clock.display()
             else:
                 # Draw threshold line

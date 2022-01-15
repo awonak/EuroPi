@@ -48,12 +48,14 @@ Python's periodic garbage collection running and causing timing delays. The
 Clock is mostly accurate within a range of 20 to 300 BPM for both internal and
 external clock sources.
 
+Run the script from rshell
+
+    > repl ~ from main import * ~ c = Clock() ~ c.main()
+
 """
 from europi import cv1, din, k1, oled
 from time import ticks_diff, ticks_add, ticks_ms, sleep_ms
-import machine
 
-machine.freq(250000000)
 
 # Internal clock tempo range.
 MAX_BPM = 280
