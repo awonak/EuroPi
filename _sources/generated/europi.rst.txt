@@ -1,5 +1,0 @@
-﻿europi
-======
-
-.. automodule:: europi
-    :members:
