@@ -81,27 +81,9 @@ You can then use the inputs, outputs, knobs, and buttons as objects, and make us
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">europi.</span></span><span class="sig-name descname"><span class="pre">AnalogueInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_voltage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_voltage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">12</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.AnalogueInput" title="Permalink to this definition"></a></dt>
 <dd><p>A class for handling the reading of analogue control voltage.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="europi.AnalogueInput.choice">
-<span class="sig-name descname"><span class="pre">choice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.AnalogueInput.choice" title="Permalink to this definition"></a></dt>
-<dd><p>Return a value from a list chosen by the current voltage value.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="europi.AnalogueInput.percent">
 <span class="sig-name descname"><span class="pre">percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.AnalogueInput.percent" title="Permalink to this definition"></a></dt>
 <dd><p>Current voltage as a relative percentage of the component’s range.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="europi.AnalogueInput.range">
-<span class="sig-name descname"><span class="pre">range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.AnalogueInput.range" title="Permalink to this definition"></a></dt>
-<dd><p>Return a value (upper bound excluded) chosen by the current voltage value.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="europi.AnalogueInput.set_samples">
-<span class="sig-name descname"><span class="pre">set_samples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.AnalogueInput.set_samples" title="Permalink to this definition"></a></dt>
-<dd><p>Override the default number of sample reads with the given value.</p>
 </dd></dl>
 
 </dd></dl>
@@ -113,7 +95,7 @@ You can then use the inputs, outputs, knobs, and buttons as objects, and make us
 <dl class="py method">
 <dt class="sig sig-object py" id="europi.AnalogueReader.choice">
 <span class="sig-name descname"><span class="pre">choice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.AnalogueReader.choice" title="Permalink to this definition"></a></dt>
-<dd><p>Return a value from a list chosen by the current voltage value.</p>
+<dd><p>Return a value from a list chosen by the relative knob position.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -125,7 +107,7 @@ You can then use the inputs, outputs, knobs, and buttons as objects, and make us
 <dl class="py method">
 <dt class="sig sig-object py" id="europi.AnalogueReader.range">
 <span class="sig-name descname"><span class="pre">range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.AnalogueReader.range" title="Permalink to this definition"></a></dt>
-<dd><p>Return a value (upper bound excluded) chosen by the current voltage value.</p>
+<dd><p>Return a value (upper bound excluded) chosen by the current voltages relative position.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -141,15 +123,9 @@ You can then use the inputs, outputs, knobs, and buttons as objects, and make us
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">europi.</span></span><span class="sig-name descname"><span class="pre">Button</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debounce_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.Button" title="Permalink to this definition"></a></dt>
 <dd><p>A class for handling push button behavior.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="europi.Button.handler">
-<span class="sig-name descname"><span class="pre">handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.Button.handler" title="Permalink to this definition"></a></dt>
-<dd><p>Define the callback func to call when rising edge detected.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="europi.Button.value">
-<span class="sig-name descname"><span class="pre">value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#europi.Button.value" title="Permalink to this definition"></a></dt>
-<dd><p>The current binary value, HIGH (1) or LOW (0).</p>
+<dt class="sig sig-object py" id="europi.Button.last_pressed">
+<span class="sig-name descname"><span class="pre">last_pressed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#europi.Button.last_pressed" title="Permalink to this definition"></a></dt>
+<dd><p>Return the ticks_ms of the last button press or 0 prior to the first button press.</p>
 </dd></dl>
 
 </dd></dl>
@@ -159,15 +135,9 @@ You can then use the inputs, outputs, knobs, and buttons as objects, and make us
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">europi.</span></span><span class="sig-name descname"><span class="pre">DigitalInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debounce_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.DigitalInput" title="Permalink to this definition"></a></dt>
 <dd><p>A class for handling reading of the digital input.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="europi.DigitalInput.handler">
-<span class="sig-name descname"><span class="pre">handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.DigitalInput.handler" title="Permalink to this definition"></a></dt>
-<dd><p>Define the callback func to call when rising edge detected.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="europi.DigitalInput.value">
-<span class="sig-name descname"><span class="pre">value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#europi.DigitalInput.value" title="Permalink to this definition"></a></dt>
-<dd><p>The current binary value, HIGH (1) or LOW (0).</p>
+<dt class="sig sig-object py" id="europi.DigitalInput.last_triggered">
+<span class="sig-name descname"><span class="pre">last_triggered</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#europi.DigitalInput.last_triggered" title="Permalink to this definition"></a></dt>
+<dd><p>Return the ticks_ms of the last trigger or 0 prior to the first trigger.</p>
 </dd></dl>
 
 </dd></dl>
@@ -180,6 +150,12 @@ You can then use the inputs, outputs, knobs, and buttons as objects, and make us
 <dt class="sig sig-object py" id="europi.DigitalReader.handler">
 <span class="sig-name descname"><span class="pre">handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.DigitalReader.handler" title="Permalink to this definition"></a></dt>
 <dd><p>Define the callback func to call when rising edge detected.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="europi.DigitalReader.handler_falling">
+<span class="sig-name descname"><span class="pre">handler_falling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.DigitalReader.handler_falling" title="Permalink to this definition"></a></dt>
+<dd><p>Define the callback func to call when falling edge detected.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -213,33 +189,15 @@ You can then use the inputs, outputs, knobs, and buttons as objects, and make us
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">europi.</span></span><span class="sig-name descname"><span class="pre">Knob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.Knob" title="Permalink to this definition"></a></dt>
 <dd><p>A class for handling the reading of knob voltage and position.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="europi.Knob.choice">
-<span class="sig-name descname"><span class="pre">choice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.Knob.choice" title="Permalink to this definition"></a></dt>
-<dd><p>Return a value from a list chosen by the current voltage value.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="europi.Knob.percent">
 <span class="sig-name descname"><span class="pre">percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.Knob.percent" title="Permalink to this definition"></a></dt>
 <dd><p>Return the knob’s position as relative percentage.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="europi.Knob.range">
-<span class="sig-name descname"><span class="pre">range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.Knob.range" title="Permalink to this definition"></a></dt>
-<dd><p>Return a value (upper bound excluded) chosen by the current voltage value.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="europi.Knob.read_position">
 <span class="sig-name descname"><span class="pre">read_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.Knob.read_position" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the position as a value between zero and provided integer.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="europi.Knob.set_samples">
-<span class="sig-name descname"><span class="pre">set_samples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#europi.Knob.set_samples" title="Permalink to this definition"></a></dt>
-<dd><p>Override the default number of sample reads with the given value.</p>
 </dd></dl>
 
 </dd></dl>
