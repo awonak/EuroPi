@@ -139,31 +139,16 @@ would like to use a different name:</p>
 <dt class="sig sig-object py" id="europi_script.EuroPiScript.load_state_bytes">
 <span class="sig-name descname"><span class="pre">load_state_bytes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="headerlink" href="#europi_script.EuroPiScript.load_state_bytes" title="Permalink to this definition"></a></dt>
 <dd><p>Check disk for saved state, if it exists, return the raw state value as bytes.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check for a previously saved state. If it exists, return state as a</span>
-<span class="c1"># byte string. If no state is found, an empty string will be returned.</span>
-<span class="n">state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">load_state_bytes</span><span class="p">()</span>
-
-<span class="c1"># Unpack the state bytes using the given format string, which in our</span>
-<span class="c1"># example unpacks an integer and bool.</span>
-<span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">format_string</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
-</pre></div>
-</div>
+<p>Check for a previously saved state. If it exists, return state as a
+byte string. If no state is found, an empty string will be returned.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="europi_script.EuroPiScript.load_state_json">
 <span class="sig-name descname"><span class="pre">load_state_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#europi_script.EuroPiScript.load_state_json" title="Permalink to this definition"></a></dt>
 <dd><p>Load previously saved state as a dict.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check for a previously saved state. If it exists, return state as a</span>
-<span class="c1"># dict. If no state is found, an empty dictionary will be returned.</span>
-<span class="n">state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">load_state_json</span><span class="p">()</span>
-
-<span class="c1"># Set state variables with default fallback values if not found in the</span>
-<span class="c1"># json save state.</span>
-<span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;counter&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-<span class="bp">self</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;enabled&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
+<p>Check for a previously saved state. If it exists, return state as a
+dict. If no state is found, an empty dictionary will be returned.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -202,12 +187,6 @@ writing to disk too often can slow down the performance of your
 script. Only call save state when state has changed and consider
 adding a time since last save check to reduce save frequency.</p>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># https://docs.python.org/3/library/struct.html#format-characters</span>
-<span class="n">format_string</span> <span class="o">=</span> <span class="s2">&quot;b?&quot;</span>
-<span class="n">state</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="n">format_string</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">save_state_bytes</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-</pre></div>
-</div>
 </dd></dl>
 
 <dl class="py method">
@@ -220,14 +199,6 @@ adding a time since last save check to reduce save frequency.</p>
 writing to disk too often can slow down the performance of your
 script. Only call save state when state has changed and consider
 adding a time since last save check to reduce save frequency.</p>
-</div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Save the current state variables as JSON.</span>
-<span class="n">state</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;counter&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter</span><span class="p">,</span>  <span class="c1"># int</span>
-    <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span><span class="p">,</span>  <span class="c1"># bool</span>
-<span class="p">}</span>
-<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">save_state_json</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-</pre></div>
 </div>
 </dd></dl>
 
