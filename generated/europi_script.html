@@ -106,14 +106,14 @@
 </div>
 <p>To include your script in the menu it must be added to the <code class="docutils literal notranslate"><span class="pre">EUROPI_SCRIPT_CLASSES</span></code> list in <code class="docutils literal notranslate"><span class="pre">contrib/menu.py</span></code>.</p>
 <p><strong>Save/Load Script State</strong></p>
-<p>Optionally, you can add a bit of code to enable your script to save state upon change, and load previous state at startup.</p>
-<p>When adding save state functionality to your script, there are a few important considerations to keep in mind:</p>
+<p>Optionally, you can add a bit of code to enable your script to save state, and load previous state at startup. By default, when exiting the script to menu selection, <code class="docutils literal notranslate"><span class="pre">save_state()</span></code> will be called. Additionally, you can add calls to <code class="docutils literal notranslate"><span class="pre">save_state()</span></code> whenever state changes.</p>
+<p>When adding <code class="docutils literal notranslate"><span class="pre">save_state()</span></code> calls to your script, there are a few important considerations to keep in mind:</p>
 <blockquote>
-<div><ol class="arabic simple">
+<div><ul class="simple">
 <li><p>Frequency of saves - scripts should only save state to disk when state changes, and should not save too frequently because os write operations are expensive in terms of time. Saving too frequently will affect the performance of a script.</p></li>
 <li><p>Save state file size - The pico only has about 1MB of free space available so save state storage format is important to keep as minimal as possible.</p></li>
 <li><p>No externally influenced input - The instance variables your script saves should not be externally influenced, meaning you should not save the current knob position, current analog input value or current digital input value.</p></li>
-</ol>
+</ul>
 </div></blockquote>
 <p>To add the ability to save and load state, you must:</p>
 <blockquote>
@@ -152,14 +152,14 @@
 
     <span class="k">def</span> <span class="nf">save_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># 5</span>
         <span class="c1"># Don&#39;t save if it has been less than 5 seconds since last save.</span>
-        <span class="k">if</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">last_saved</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">5000</span><span class="p">:</span>  <span class="c1"># 6</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_saved</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">5000</span><span class="p">:</span>  <span class="c1"># 6</span>
             <span class="k">return</span>
 
         <span class="n">state</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;counter&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter</span><span class="p">,</span>
             <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">save_state_json</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_state_json</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">oled</span><span class="o">.</span><span class="n">centre_text</span><span class="p">(</span><span class="s2">&quot;Hello world&quot;</span><span class="p">)</span>
@@ -224,6 +224,16 @@ string. If no state is found, an empty string will be returned.</p>
 <dt class="sig sig-object py" id="europi_script.EuroPiScript.remove_state">
 <span class="sig-name descname"><span class="pre">remove_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#europi_script.EuroPiScript.remove_state" title="Permalink to this definition"></a></dt>
 <dd><p>Remove the state file for this script.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="europi_script.EuroPiScript.save_state">
+<span class="sig-name descname"><span class="pre">save_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#europi_script.EuroPiScript.save_state" title="Permalink to this definition"></a></dt>
+<dd><p>Encode state and call the appropriate persistence save method.</p>
+<p>Override this class with the script specific encoding of state into
+the persistence format that best matches its use case. Then call the
+appropriate save method, such as <cite>save_state_json(state)</cite>. See the
+class documentation for a full example.</p>
 </dd></dl>
 
 <dl class="py method">
