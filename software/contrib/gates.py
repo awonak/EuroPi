@@ -7,8 +7,6 @@ labels: sequencer, gates, triggers, random
 Inspired by Varigate, 16-step trigger/gate sequencer with probability
 and retriggers.
 
-Modes: pattern select, rotate
-
 Attributes: trigger on/off, probability, re-trig
 
 
@@ -84,8 +82,6 @@ class Pattern:
             retrigs = self.get_retrigs(step)
             duration = int(period / retrigs) - (TRIGGER_MS * retrigs)
             await self._trigger(self.cv, retrigs, duration)
-        elif self.cv == cv1:
-            print("MISS")
 
     async def _trigger(self, cv, retrigs, duration):
         for _ in range(retrigs):
