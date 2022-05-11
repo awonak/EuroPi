@@ -4,7 +4,7 @@ author: Adam Wonak (github.com/awonak)
 date: 2022-04-24
 labels: sequencer, gates, triggers, random
 
-Inspired by Varigate, chainable 16-step trigger/gate sequencer with probability
+Inspired by Varigate, 16-step trigger/gate sequencer with probability
 and retriggers.
 
 Modes: pattern select, rotate
@@ -13,7 +13,7 @@ Attributes: trigger on/off, probability, re-trig
 
 
 digital_in: clock in
-analog_in: pattern select
+analog_in:
 
 knob_1: select step in current pattern
 knob_2: adjust the value of the selected attribute
@@ -50,6 +50,7 @@ except ImportError:
 
 
 MENU_DURATION = 1200
+TRIGGER_MS = 5
 
 
 class Pattern:
@@ -58,9 +59,11 @@ class Pattern:
         self.cv = cv
         self.probability = [0] * steps
         self.retrig = [0] * steps
+        self.steps = steps
+        self.current_step = -1
 
         # Configurable behavior
-        self._prob_precision = 100
+        self._prob_precision = 101  # full 0 to 100 range
         self._max_retrig = 8
 
     def edit_prob(self, step: int, value: float):
@@ -75,17 +78,19 @@ class Pattern:
     def get_retrigs(self, step: int):
         return int(self.retrig[step] * self._max_retrig) + 1
 
-    def play_step(self, step, period):
+    async def play_step(self, step, period):
+        self.current_step = (self.current_step + 1) % self.steps
         if self.probability[step] >= random():
             retrigs = self.get_retrigs(step)
-            duration = int(period / retrigs) - (10 * retrigs)
-            asyncio.create_task(Pattern.trigger(self.cv, retrigs, duration))
+            duration = int(period / retrigs) - (TRIGGER_MS * retrigs)
+            await self._trigger(self.cv, retrigs, duration)
+        elif self.cv == cv1:
+            print("MISS")
 
-    @staticmethod
-    async def trigger(cv, retrigs, duration):
+    async def _trigger(self, cv, retrigs, duration):
         for _ in range(retrigs):
             cv.on()
-            await asyncio.sleep_ms(10)
+            await asyncio.sleep_ms(TRIGGER_MS)
             cv.off()
             await asyncio.sleep_ms(duration)
 
@@ -110,6 +115,7 @@ class BillGates(EuroPiScript):
         # A list of clock trigger durations for calculating the moving average.
         self._run = [0] * run_length
         self._last_time = ticks_ms()
+        # Current average duration between clock triggers.
         self._period = 0
 
         self.patterns = [
@@ -144,8 +150,6 @@ class BillGates(EuroPiScript):
         self._period = int(sum(self._run) / self._run_length)
 
         self.current_step = (self.current_step + 1) % self.steps
-        for p in self.patterns:
-            p.play_step(self.current_step, self._period)
 
     def show_menu_header(self):
         '''Check if page or pattern button pressed to display header.'''
@@ -160,23 +164,25 @@ class BillGates(EuroPiScript):
         oled.text(msg, 0, 0, 0)
 
     def edit(self, pattern, step):
-        if k2.range() != self._prev_k2:
+        if self._prev_k2 != k2.range():
             self._prev_k2 = k2.range()
 
-            if self.pages[self.page] == 'Probability':
+            if self.page == 0:  # Probability
                 pattern.edit_prob(step, k2.percent())
 
-            elif self.pages[self.page] == 'Retrigger':
+            elif self.page == 1:  # Retrigger
                 pattern.edit_retrig(step, k2.percent())
-
+    
     def update_display(self, pattern, step):
+        oled.fill(0)
+
         # Parameter page.
-        if self.pages[self.page] == 'Probability':
+        if self.page == 0:  # Probability
             param = pattern.probability
             prob = pattern.get_probability(step)
             state = f"c:{step+1:<3} p:{prob:<3} s:{self.current_step+1:<3}"
 
-        elif self.pages[self.page] == 'Retrigger':
+        elif self.page == 1:  # Retrigger
             param = pattern.retrig
             retrig = pattern.get_retrigs(step)
             state = f"c:{step+1:<2} r:{retrig:<2} p:{self._period}"
@@ -206,9 +212,17 @@ class BillGates(EuroPiScript):
         self.show_menu_header()
         oled.show()
 
+    async def play_step(self):
+        steps = []
+        for p in self.patterns:
+            if self.current_step != p.current_step:
+                steps.append(p.play_step(self.current_step, self._period))
+        if steps:
+            await asyncio.gather(*steps)
+
     async def run(self):
         while True:
-            oled.fill(0)
+            await self.play_step()
 
             pattern = self.patterns[self.current_pattern]
             step = k1.range(self.steps)
@@ -217,7 +231,7 @@ class BillGates(EuroPiScript):
             self.update_display(pattern, step)
 
             # Release the semaphore for ample time allowing trigger tasks to run.
-            await asyncio.sleep_ms(50)
+            await asyncio.sleep_ms(TRIGGER_MS)
 
     def main(self):
         asyncio.run(self.run())
