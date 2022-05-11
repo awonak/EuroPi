@@ -54,10 +54,10 @@ MENU_DURATION = 1200
 
 class Pattern:
     def __init__(self, cv: Output, steps: int):
+        # TODO: Implement load/save state.
         self.cv = cv
         self.probability = [0] * steps
         self.retrig = [0] * steps
-        self._should_retrig = False
 
         # Configurable behavior
         self._prob_precision = 100
@@ -94,6 +94,7 @@ class BillGates(EuroPiScript):
     pages = ['Probability', 'Retrigger']
 
     def __init__(self, steps=8, run_length=16):
+        # TODO: Implement load/save state.
         super().__init__()
         self.steps = steps
         self.current_step = 0
@@ -104,12 +105,12 @@ class BillGates(EuroPiScript):
         self.STEP_HEIGHT = OLED_HEIGHT - CHAR_HEIGHT
 
         self._prev_k2 = k2.range()
+        # The number of captured observations of period duration between clock triggers.
         self._run_length = run_length
+        # A list of clock trigger durations for calculating the moving average.
         self._run = [0] * run_length
         self._last_time = ticks_ms()
         self._period = 0
-        self._should_retrigger = False
-        self._max_patterns = 3
 
         self.patterns = [
             Pattern(cv1, self.steps),
@@ -133,7 +134,7 @@ class BillGates(EuroPiScript):
         self.page = (self.page + 1) % len(self.pages)
 
     def pattern_handler(self):
-        self.current_pattern = (self.current_pattern + 1) % self._max_patterns
+        self.current_pattern = (self.current_pattern + 1) % len(self.patterns)
 
     def clock_in(self):
         # Capture the duration between clock pulses for retriggers subdivision.
@@ -174,12 +175,12 @@ class BillGates(EuroPiScript):
             param = pattern.probability
             prob = pattern.get_probability(step)
             state = f"c:{step+1:<3} p:{prob:<3} s:{self.current_step+1:<3}"
-        
+
         elif self.pages[self.page] == 'Retrigger':
             param = pattern.retrig
             retrig = pattern.get_retrigs(step)
             state = f"c:{step+1:<2} r:{retrig:<2} p:{self._period}"
-        
+
         else:
             return
 
@@ -215,7 +216,8 @@ class BillGates(EuroPiScript):
             self.edit(pattern, step)
             self.update_display(pattern, step)
 
-            await asyncio.sleep_ms(0)
+            # Release the semaphore for ample time allowing trigger tasks to run.
+            await asyncio.sleep_ms(50)
 
     def main(self):
         asyncio.run(self.run())
