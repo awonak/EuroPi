@@ -32,9 +32,10 @@ output_5: pitch cv 2
 output_6: pitch cv 3
 
 """
+import uasyncio as asyncio
 
 from random import random
-from time import ticks_diff, ticks_ms, sleep_ms
+from time import ticks_diff, ticks_ms
 
 try:
     # Local development
@@ -56,6 +57,7 @@ class Pattern:
         self.cv = cv
         self.probability = [0] * steps
         self.retrig = [0] * steps
+        self._should_retrig = False
 
         # Configurable behavior
         self._prob_precision = 100
@@ -67,15 +69,25 @@ class Pattern:
     def edit_retrig(self, step: int, value: float):
         self.retrig[step] = value
 
-    def probs(self, step: int):
+    def get_probability(self, step: int):
         return int(self.probability[step] * self._prob_precision)
 
-    def retrigs(self, step: int):
-        return int(self.retrig[step] * self._max_retrig)
+    def get_retrigs(self, step: int):
+        return int(self.retrig[step] * self._max_retrig) + 1
 
-    def play_step(self, step):
+    def play_step(self, step, period):
         if self.probability[step] >= random():
-            self.cv.on()
+            retrigs = self.get_retrigs(step)
+            duration = int(period / retrigs) - (10 * retrigs)
+            asyncio.create_task(Pattern.trigger(self.cv, retrigs, duration))
+
+    @staticmethod
+    async def trigger(cv, retrigs, duration):
+        for _ in range(retrigs):
+            cv.on()
+            await asyncio.sleep_ms(10)
+            cv.off()
+            await asyncio.sleep_ms(duration)
 
 
 class BillGates(EuroPiScript):
@@ -106,7 +118,6 @@ class BillGates(EuroPiScript):
         ]
 
         din.handler(self.clock_in)
-        din.handler_falling(self.clock_out)
 
         self.page_button = b1
         self.page_button.handler(self.page_handler)
@@ -117,31 +128,26 @@ class BillGates(EuroPiScript):
     @classmethod
     def display_name(cls):
         return "Bill Gates"
-    
+
     def page_handler(self):
-        self.page = (self.page+ 1) % len(self.pages)
-    
+        self.page = (self.page + 1) % len(self.pages)
+
     def pattern_handler(self):
         self.current_pattern = (self.current_pattern + 1) % self._max_patterns
 
     def clock_in(self):
-        c = ticks_diff(ticks_ms(), self._last_time)
+        # Capture the duration between clock pulses for retriggers subdivision.
+        current_period = ticks_diff(ticks_ms(), self._last_time)
         self._last_time = ticks_ms()
-        self._run = self._run[1:] + [c]
+        self._run = self._run[1:] + [current_period]
         self._period = int(sum(self._run) / self._run_length)
 
         self.current_step = (self.current_step + 1) % self.steps
         for p in self.patterns:
-            p.play_step(self.current_step)
-            if p.retrigs(self.current_step):
-                self._should_retrigger = True
-
-    def clock_out(self):
-        # TODO: This may interfere with retrigs
-        for cv in (cv1, cv2, cv3):
-            cv.off()
+            p.play_step(self.current_step, self._period)
 
     def show_menu_header(self):
+        '''Check if page or pattern button pressed to display header.'''
         if ticks_diff(ticks_ms(), self.page_button.last_pressed()) < MENU_DURATION:
             msg = f"{self.pages[self.page]}"
         elif ticks_diff(ticks_ms(), self.pattern_button.last_pressed()) < MENU_DURATION:
@@ -161,36 +167,19 @@ class BillGates(EuroPiScript):
 
             elif self.pages[self.page] == 'Retrigger':
                 pattern.edit_retrig(step, k2.percent())
-    
-    def retrigger(self):
-        '''
-        Retrigger will duck the current gate for 5ms over evenly spaced
-        intervals according to the number of retrigs.
-        '''
-        # TODO: wrap each pattern retrig in asyncio task
-        if self._should_retrigger:
-            self._should_retrigger = False
-            retrig = self.patterns[0].retrigs(self.current_step)
-            if retrig > 0:
-                ms = int(self._period / retrig)
-                for _ in range(retrig):
-                    sleep_ms(ms - 10)
-                    self.patterns[0].cv.off()
-                    sleep_ms(5)
-                    self.patterns[0].cv.on()
-                sleep_ms(5)
-                self.patterns[0].cv.off()
 
     def update_display(self, pattern, step):
         # Parameter page.
         if self.pages[self.page] == 'Probability':
             param = pattern.probability
-            prob = pattern.probs(step)
+            prob = pattern.get_probability(step)
             state = f"c:{step+1:<3} p:{prob:<3} s:{self.current_step+1:<3}"
+        
         elif self.pages[self.page] == 'Retrigger':
             param = pattern.retrig
-            retrig = pattern.retrigs(step)
+            retrig = pattern.get_retrigs(step)
             state = f"c:{step+1:<2} r:{retrig:<2} p:{self._period}"
+        
         else:
             return
 
@@ -216,7 +205,7 @@ class BillGates(EuroPiScript):
         self.show_menu_header()
         oled.show()
 
-    def main(self):
+    async def run(self):
         while True:
             oled.fill(0)
 
@@ -226,7 +215,10 @@ class BillGates(EuroPiScript):
             self.edit(pattern, step)
             self.update_display(pattern, step)
 
-            self.retrigger()
+            await asyncio.sleep_ms(0)
+
+    def main(self):
+        asyncio.run(self.run())
 
 
 if __name__ == "__main__":
