@@ -13,28 +13,49 @@ For example::
 
 Will set the CV output 3 to a voltage of 4.5V.
 """
+import sys
 import time
 
 from machine import ADC
 from machine import I2C
 from machine import PWM
 from machine import Pin
+from machine import freq
+
 
 from ssd1306 import SSD1306_I2C
 
-try:
-    import micropython
-    TEST_ENV = False # We're in micropython, so we can assume access to real hardware
-except ModuleNotFoundError:
-    TEST_ENV = True # This var is set when we don't have any real hardware, for example in a test or doc generation setting
+from version import __version__
 
+from framebuf import FrameBuffer, MONO_HLSB
+
+if sys.implementation.name == "micropython":
+    TEST_ENV = False  # We're in micropython, so we can assume access to real hardware
+else:
+    TEST_ENV = True  # This var is set when we don't have any real hardware, for example in a test or doc generation setting
 try:
     from calibration_values import INPUT_CALIBRATION_VALUES, OUTPUT_CALIBRATION_VALUES
 except ImportError:
     # Note: run calibrate.py to get a more precise calibration.
-    INPUT_CALIBRATION_VALUES=[384, 44634]
-    OUTPUT_CALIBRATION_VALUES = [0, 6300, 12575, 19150, 25375, 31625, 38150, 44225, 50525, 56950, 63475]
+    INPUT_CALIBRATION_VALUES = [384, 44634]
+    OUTPUT_CALIBRATION_VALUES = [
+        0,
+        6300,
+        12575,
+        19150,
+        25375,
+        31625,
+        38150,
+        44225,
+        50525,
+        56950,
+        63475,
+    ]
 
+# Pico machine CPU freq.
+# Default pico CPU freq is 125_000_000 (125mHz)
+DEFAULT_CPU_FREQ = 125_000_000
+OVERCLOCKED_CPU_FREQ = 250_000_000
 
 # OLED component display dimensions.
 OLED_WIDTH = 128
@@ -54,12 +75,20 @@ DEFAULT_SAMPLES = 32
 MIN_OUTPUT_VOLTAGE = 0
 MAX_OUTPUT_VOLTAGE = 10
 
+# PWM Frequency
+PWM_FREQ = 100_000
+
 # Default font is 8x8 pixel monospaced font.
 CHAR_WIDTH = 8
 CHAR_HEIGHT = 8
 
+# Digital input and output binary values.
+HIGH = 1
+LOW = 0
+
 
 # Helper functions.
+
 
 def clamp(value, low, high):
     """Returns a value that is no lower than 'low' and no higher than 'high'."""
@@ -74,7 +103,23 @@ def reset_state():
     [d.reset_handler() for d in (b1, b2, din)]
 
 
+def bootsplash():
+    """Display the EuroPi version when booting."""
+    image = b"\x00\x00\x00\x01\xf0\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02\x08\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x04\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\xc4\x04\x00\x18\x00\x00\x00p\x07\x00\x00\x00\x00\x00\x00\x0c$\x02\x00~\x0c\x18\xb9\x8c8\xc3\x00\x00\x00\x00\x00\x10\x14\x01\x00\xc3\x0c\x18\xc3\x060c\x00\x00\x00\x00\x00\x10\x0b\xc0\x80\x81\x8c\x18\xc2\x020#\x00\x00\x00\x00\x00 \x04\x00\x81\x81\x8c\x18\x82\x02 #\x00\x00\x00\x00\x00A\x8a|\x81\xff\x0c\x18\x82\x02 #\x00\x00\x00\x00\x00FJC\xc1\x80\x0c\x18\x82\x02 #\x00\x00\x00\x00\x00H\x898\x00\x80\x0c\x18\x83\x060c\x00\x00\x00\x00\x00S\x08\x87\x00\xc3\x060\x81\x8c8\xc3\x00\x00\x00\x00\x00d\x08\x00\xc0<\x01\xc0\x80p7\x03\x00\x00\x00\x00\x00X\x08p \x00\x00\x00\x00\x000\x00\x00\x00\x00\x00\x00#\x88H \x00\x00\x00\x00\x000\x00\x00\x00\x00\x00\x00L\xb8& \x00\x00\x00\x00\x000\x00\x00\x00\x00\x00\x00\x91P\x11 \x00\x00\x00\x00\x000\x00\x00\x00\x00\x00\x00\xa6\x91\x08\xa0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xc9\x12\x84`\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x12C\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00$\x11 \x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00H\x0c\x90\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00@\x12\x88\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00 \x12F\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x10A\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10  \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08  \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04@@\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xc6\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x008\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+    TH = bytearray(image)
+    fb = FrameBuffer(TH, 128, 32, MONO_HLSB)
+    oled.blit(fb, 0, 0)
+
+    version_str = str(__version__)
+    version_length = len(version_str)
+    offset = int(((150 - (version_length * CHAR_WIDTH)) / 2))
+    oled.text(version_str, offset, 20, 1)
+
+    oled.show()
+
+
 # Component classes.
+
 
 class AnalogueReader:
     """A base class for common analogue read methods.
@@ -84,6 +129,7 @@ class AnalogueReader:
     """
 
     def __init__(self, pin, samples=DEFAULT_SAMPLES):
+        self.pin_id = pin
         self.pin = ADC(Pin(pin))
         self.set_samples(samples)
 
@@ -97,8 +143,7 @@ class AnalogueReader:
     def set_samples(self, samples):
         """Override the default number of sample reads with the given value."""
         if not isinstance(samples, int):
-            raise ValueError(
-                f"set_samples expects an int value, got: {samples}")
+            raise ValueError(f"set_samples expects an int value, got: {samples}")
         self._samples = samples
 
     def percent(self, samples=None):
@@ -111,7 +156,7 @@ class AnalogueReader:
             raise ValueError(f"range expects an int value, got: {steps}")
         percent = self.percent(samples)
         if int(percent) == 1:
-            return steps -1
+            return steps - 1
         return int(percent * steps)
 
     def choice(self, values, samples=None):
@@ -140,6 +185,7 @@ class AnalogueInput(AnalogueReader):
     processor won't bog down until you get way up into the thousands if you
     wan't incredibly accurate (but quite slow) readings.
     """
+
     def __init__(self, pin, min_voltage=MIN_INPUT_VOLTAGE, max_voltage=MAX_INPUT_VOLTAGE):
         super().__init__(pin)
         self.MIN_VOLTAGE = min_voltage
@@ -147,10 +193,11 @@ class AnalogueInput(AnalogueReader):
         self._gradients = []
         for index, value in enumerate(INPUT_CALIBRATION_VALUES[:-1]):
             try:
-                self._gradients.append(1 / (INPUT_CALIBRATION_VALUES[index+1] - value))
+                self._gradients.append(1 / (INPUT_CALIBRATION_VALUES[index + 1] - value))
             except ZeroDivisionError:
                 raise Exception(
-                    "The input calibration process did not complete properly. Please complete again with rack power turned on")
+                    "The input calibration process did not complete properly. Please complete again with rack power turned on"
+                )
         self._gradients.append(self._gradients[-1])
 
     def percent(self, samples=None):
@@ -169,8 +216,7 @@ class AnalogueInput(AnalogueReader):
             cv = 10 * (reading / INPUT_CALIBRATION_VALUES[-1])
         else:
             index = int(percent * (len(INPUT_CALIBRATION_VALUES) - 1))
-            cv = index + (self._gradients[index] *
-                          (reading - INPUT_CALIBRATION_VALUES[index]))
+            cv = index + (self._gradients[index] * (reading - INPUT_CALIBRATION_VALUES[index]))
         return clamp(cv, self.MIN_VOLTAGE, self.MAX_VOLTAGE)
 
 
@@ -228,6 +274,7 @@ class DigitalReader:
     not need to be used by user scripts.
 
     """
+
     def __init__(self, pin, debounce_delay=500):
         self.pin = Pin(pin, Pin.IN)
         self.debounce_delay = debounce_delay
@@ -246,29 +293,31 @@ class DigitalReader:
 
     def _bounce_wrapper(self, pin):
         """IRQ handler wrapper for falling and rising edge callback functions."""
-        if self.value() == 1:
+        if self.value() == HIGH:
             if time.ticks_diff(time.ticks_ms(), self.last_rising_ms) < self.debounce_delay:
                 return
             self.last_rising_ms = time.ticks_ms()
             return self._rising_handler()
-
-        elif self.value() == 0:
+        elif self.value() == LOW:
             if time.ticks_diff(time.ticks_ms(), self.last_falling_ms) < self.debounce_delay:
                 return
             self.last_falling_ms = time.ticks_ms()
 
             # Check if 'other' pin is set and if 'other' pins is high and if this pin has been high for long enough.
-            if self._other and self._other.value() and time.ticks_diff(self.last_falling_ms, self.last_rising_ms) > 500:
+            if (
+                self._other
+                and self._other.value()
+                and time.ticks_diff(self.last_falling_ms, self.last_rising_ms) > 500
+            ):
                 return self._both_handler()
-
             return self._falling_handler()
 
     def value(self):
         """The current binary value, HIGH (1) or LOW (0)."""
         # Both the digital input and buttons are normally high, and 'pulled'
-        # low when on, so this is flipped to be more intuitive (1 when on, 0
-        # when off)
-        return 1 - self.pin.value()
+        # low when on, so this is flipped to be more intuitive
+        # (high when on, low when off)
+        return LOW if self.pin.value() else HIGH
 
     def handler(self, func):
         """Define the callback function to call when rising edge detected."""
@@ -328,6 +377,7 @@ class DigitalInput(DigitalReader):
     to change behavior based on the altered state. See `tips <https://docs.micropython.org/en/latest/reference/isr_rules.html#tips-and-recommended-practices>`_
     from the MicroPython documentation for more details.
     """
+
     def __init__(self, pin, debounce_delay=0):
         super().__init__(pin, debounce_delay)
 
@@ -361,6 +411,7 @@ class Button(DigitalReader):
     triggered with the ``DigitalInput.last_triggered()`` method.
 
     """
+
     def __init__(self, pin, debounce_delay=200):
         super().__init__(pin, debounce_delay)
 
@@ -380,13 +431,22 @@ class Display(SSD1306_I2C):
     you to perform more complicated graphics without slowing your program, or
     to perform the calculations for other functions, but only update the
     display every few steps to prevent lag.
-    
+
     To clear the display, simply fill the display with the colour black by using ``oled.fill(0)``
 
     More explanations and tips about the the display can be found in the oled_tips file
     `oled_tips.md <https://github.com/Allen-Synthesis/EuroPi/blob/main/software/oled_tips.md>`_
     """
-    def __init__(self, sda, scl, width=OLED_WIDTH, height=OLED_HEIGHT, channel=I2C_CHANNEL, freq=I2C_FREQUENCY):
+
+    def __init__(
+        self,
+        sda,
+        scl,
+        width=OLED_WIDTH,
+        height=OLED_HEIGHT,
+        channel=I2C_CHANNEL,
+        freq=I2C_FREQUENCY,
+    ):
         i2c = I2C(channel, sda=Pin(sda), scl=Pin(scl), freq=freq)
         self.width = width
         self.height = height
@@ -394,8 +454,8 @@ class Display(SSD1306_I2C):
         if len(i2c.scan()) == 0:
             if not TEST_ENV:
                 raise Exception(
-                    "EuroPi Hardware Error:\nMake sure the OLED display is connected correctly")
-
+                    "EuroPi Hardware Error:\nMake sure the OLED display is connected correctly"
+                )
         super().__init__(self.width, self.height, i2c)
 
     def centre_text(self, text):
@@ -404,18 +464,16 @@ class Display(SSD1306_I2C):
         # Default font is 8x8 pixel monospaced font which can be split to a
         # maximum of 4 lines on a 128x32 display, but we limit it to 3 lines
         # for readability.
-        lines = str(text).split('\n')
+        lines = str(text).split("\n")
         maximum_lines = round(self.height / CHAR_HEIGHT)
         if len(lines) > maximum_lines:
-            raise Exception(
-                "Provided text exceeds available space on oled display.")
-
+            raise Exception("Provided text exceeds available space on oled display.")
         padding_top = (self.height - (len(lines) * 9)) / 2
         for index, content in enumerate(lines):
             x_offset = int((self.width - ((len(content) + 1) * 7)) / 2) - 1
             y_offset = int((index * 9) + padding_top) - 1
             self.text(content, x_offset, y_offset)
-        oled.show()
+        self.show()
 
 
 class Output:
@@ -428,19 +486,18 @@ class Output:
     resistor values actually give you a range of about 0-10.5V, which is why
     calibration is important if you want to be able to output precise voltages.
     """
+
     def __init__(self, pin, min_voltage=MIN_OUTPUT_VOLTAGE, max_voltage=MAX_OUTPUT_VOLTAGE):
         self.pin = PWM(Pin(pin))
-        # Set freq to 1kHz as the default is too low and creates audible PWM 'hum'.
-        self.pin.freq(100_000)
+        self.pin.freq(PWM_FREQ)
         self._duty = 0
         self.MIN_VOLTAGE = min_voltage
         self.MAX_VOLTAGE = max_voltage
 
         self._gradients = []
         for index, value in enumerate(OUTPUT_CALIBRATION_VALUES[:-1]):
-            self._gradients.append(OUTPUT_CALIBRATION_VALUES[index+1] - value)
+            self._gradients.append(OUTPUT_CALIBRATION_VALUES[index + 1] - value)
         self._gradients.append(self._gradients[-1])
-
 
     def _set_duty(self, cycle):
         cycle = int(cycle)
@@ -451,10 +508,9 @@ class Output:
         """Set the output voltage to the provided value within the range of 0 to 10."""
         if voltage is None:
             return self._duty / MAX_UINT16
-
         voltage = clamp(voltage, self.MIN_VOLTAGE, self.MAX_VOLTAGE)
-        index = int(voltage//1)
-        self._set_duty(OUTPUT_CALIBRATION_VALUES[index] + (self._gradients[index]*(voltage%1)))
+        index = int(voltage // 1)
+        self._set_duty(OUTPUT_CALIBRATION_VALUES[index] + (self._gradients[index] * (voltage % 1)))
 
     def on(self):
         """Set the voltage HIGH at 5 volts."""
@@ -473,11 +529,13 @@ class Output:
 
     def value(self, value):
         """Sets the output to 0V or 5V based on a binary input, 0 or 1."""
-        if value == 1:
+        if value == HIGH:
             self.on()
         else:
             self.off()
 
+
+## Initialize EuroPi global singleton instance variables.
 
 # Define all the I/O using the appropriate class and with the pins used
 din = DigitalInput(22)
@@ -495,6 +553,11 @@ cv4 = Output(17)
 cv5 = Output(18)
 cv6 = Output(19)
 cvs = [cv1, cv2, cv3, cv4, cv5, cv6]
+
+usb_connected = DigitalReader(24, 0)
+
+# Overclock the Pico for improved performance.
+freq(OVERCLOCKED_CPU_FREQ)
 
 # Reset the module state upon import.
 reset_state()
